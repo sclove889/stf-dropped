@@ -1,0 +1,35 @@
+# ───── 第三方原始数据（有版权，不随仓库分发；下载方式见 README） ─────
+01_raw/csds/*.json
+01_raw/vcsum/
+01_raw/alimeeting/
+01_raw/sample_pretty.json
+
+# ───── 训练产物 ─────
+04_train/**/checkpoint-*/
+04_train/**/*.safetensors
+04_train/**/*.bin
+04_train/**/*.pt
+saves/
+output/
+*.gguf
+
+# ───── 运行日志与中间结果 ─────
+logs/*
+!logs/.gitkeep
+02_gold/*.jsonl
+06_data/*.jsonl
+03_eval/results/
+
+# ───── 杂物 ─────
+*.bak
+c.json
+v.json
+.DS_Store
+Thumbs.db
+
+# ───── Python ─────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/

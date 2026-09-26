@@ -1,0 +1,12 @@
+# 由 inspect_csds.py 自动猜出，需肉眼核对后使用
+# 核对方法：对照结构树，确认每个名字确实装着注释里说的东西
+
+K_DIALOG     = 'Dialogue'
+K_QA         = 'QA'
+K_INTENT     = 'intent'
+K_PAIN       = 'QueSumm'
+K_SOLUTION   = 'AnsSummLong'
+K_PAIN_IDS   = 'QueSummUttIDs'
+K_SOL_IDS    = 'AnsSummLongUttIDs'
+K_UTT_TEXT   = 'utterance'
+K_UTT_ROLE   = 'speaker'
