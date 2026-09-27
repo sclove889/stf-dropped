@@ -81,6 +81,27 @@ logs/        运行日志
 **不要先租 GPU。** 提示词不稳的三种病因里只有一种归 SFT 管，
 而且在事实层建好之前做 SFT 会**加重**幻觉。详见 v2 第三节。
 
+### 并行：把训练管线先跑通
+
+上面三件事在做的同时，可以用 3 条转录样本把 AutoDL + LLaMA-Factory 打通，
+约 ¥2、1.5 小时。**目标是验证管线，不是验证模型**——等数据攒到 200 条直接复用同一套。
+
+→ [04_train/训练操作步骤.md](04_train/训练操作步骤.md)
+
+| 文件 | 干什么 |
+|---|---|
+| [04_train/autodl_setup.sh](04_train/autodl_setup.sh) | AutoDL 一键装 LLaMA-Factory（缓存自动指向数据盘） |
+| [06_data/make_smoke.py](06_data/make_smoke.py) | 生成 3 条烟测样本，不依赖 xlsx |
+| [06_data/xlsx2alpaca.py](06_data/xlsx2alpaca.py) | 真 xlsx → Alpaca 训练集 + 事实库种子 + 健康度报告 |
+| [04_train/register_dataset.py](04_train/register_dataset.py) | 注册数据集（带校验和备份，别手改 JSON） |
+| [04_train/qwen3_8b_qlora.yaml](04_train/qwen3_8b_qlora.yaml) | Qwen3-8B QLoRA 训练配置 |
+| [04_train/infer.yaml](04_train/infer.yaml) | 训完看输出 + 对比未微调基线 |
+
+**数据格式上有个设计不要随手改**：`input` 里有一个 `【可用事实】` 槽位，
+装的是从 gold 输出里抠出的数字/型号（oracle RAG）。这样模型学的是
+「用给你的事实」而不是「在这个位置编个数字」。等知识库建好，把 oracle 换成检索结果即可，
+格式不用动。
+
 ---
 
 ## 已知局限与风险

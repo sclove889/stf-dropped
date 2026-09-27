@@ -1,0 +1,61 @@
+### 博威话术生成 —— Qwen3-8B QLoRA
+### 跑法：llamafactory-cli train /root/autodl-tmp/work/qwen3_8b_qlora.yaml
+###
+### 【烟测 → 正式】要改的只有 3 行，已用 ★ 标出
+
+### ───────── 模型 ─────────
+model_name_or_path: Qwen/Qwen3-8B    # USE_MODELSCOPE_HUB=1 时从魔搭下，约 16GB
+quantization_bit: 4                  # 4090 24GB 必须量化；A800 80GB 可删掉这两行改 bf16 LoRA
+quantization_method: bnb
+trust_remote_code: true
+
+### ───────── 方法 ─────────
+stage: sft
+do_train: true
+finetuning_type: lora
+lora_rank: 16                        # 23 条数据上 r=64 会瞬间过拟合；r=8~16 是合理区间
+lora_alpha: 32                       # 惯例 = 2 × rank
+lora_dropout: 0.05                   # 小数据集上留一点 dropout
+lora_target: all                     # 挂到所有线性层
+
+### ───────── 数据 ─────────
+dataset: huashu_smoke                # ★① 正式跑改成 huashu
+template: qwen3_nothink              # ⚠️ 必须是这个。填错不报错，只是学不到东西
+cutoff_len: 4096                     # ★② 按 xlsx2alpaca.py 报告里的建议值填，宁大勿小
+overwrite_cache: true                # ⚠️ 不加这行，改了数据也会读旧缓存，白训
+preprocessing_num_workers: 4
+dataloader_num_workers: 2
+
+### ───────── 输出 ─────────
+output_dir: /root/autodl-tmp/work/saves/qwen3-8b-huashu
+logging_steps: 1                     # 样本太少，每步都要看 loss
+save_steps: 50
+plot_loss: true                      # 会在 output_dir 下画 training_loss.png
+overwrite_output_dir: true
+report_to: none
+
+### ───────── 训练 ─────────
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 2       # 有效 batch = 2。数据只有 23 条，不能再大
+learning_rate: 1.0e-4                # LoRA 的常用值，比全参微调的 1e-5 大一个量级
+num_train_epochs: 20.0               # ★③ 烟测 20；正式 23 条时 15~20
+lr_scheduler_type: cosine
+warmup_ratio: 0.1
+bf16: true
+gradient_checkpointing: true         # 省显存，换约 20% 速度。24GB 卡上建议开着
+ddp_timeout: 180000000
+
+### ═══════════════════════════════════════════════════════
+### 步数怎么算（心里有个数，免得跑飞了不知道）
+###   每 epoch 步数 = ceil(样本数 / (batch × 累积))
+###   烟测  3 条 → ceil(3/2)=2  步/epoch × 20 = 40 步
+###   正式 23 条 → ceil(23/2)=12 步/epoch × 20 = 240 步
+###
+### 成功长什么样（这是**管线**成功，不是**模型**成功）
+###   ✅ loss 从 2.x 降到 0.5 以下
+###   ✅ output_dir 下出现 adapter_model.safetensors
+###   ✅ 推理能出「【解决问题的思路及措施】…【标准沟通话术】…」的结构
+###
+###   ⚠️ 23 条数据训 20 epoch 必然是**背答案**。loss 降到接近 0 是预期结果，
+###      不代表模型学会了。别拿它去见客户。
+### ═══════════════════════════════════════════════════════

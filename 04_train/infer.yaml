@@ -1,0 +1,19 @@
+### 训完拿来看一眼输出长什么样
+### 跑法：llamafactory-cli chat /root/autodl-tmp/work/infer.yaml
+###
+### 想对比「没微调的原模型」是什么样，把 adapter_name_or_path 那行注释掉再跑一次。
+### ⚠️ 这个对比很重要——如果微调后没有明显变化，说明 template 填错了或数据没加载上。
+
+model_name_or_path: Qwen/Qwen3-8B
+adapter_name_or_path: /root/autodl-tmp/work/saves/qwen3-8b-huashu
+template: qwen3_nothink              # ⚠️ 必须和训练时**完全一致**
+quantization_bit: 4                  # 和训练时一致，否则输出会怪
+quantization_method: bnb
+trust_remote_code: true
+infer_backend: huggingface           # 快速看一眼用 hf 就够；批量评测再上 vllm
+
+### 生成参数
+max_new_tokens: 2048                 # 话术很长，给足；不够会说一半就停
+temperature: 0.7
+top_p: 0.9
+repetition_penalty: 1.05             # 小数据集微调容易复读，压一下
