@@ -1,0 +1,61 @@
+sequenceDiagram
+    actor U as 用户
+    participant P as 会议专家经验区域
+    participant S as 前端状态容器
+    participant G as http:GET /api/v1/in-sales/meetings/{meeting_id}/industry-experience
+    participant X as http:POST /api/v1/in-sales/meetings/{meeting_id}/industry-experience/generate
+    participant E as http:POST /api/v1/in-sales/meetings/{meeting_id}/industry-experience/update
+
+    U->>P: 进入页面或刷新
+    P->>G: 查询会议经验
+    alt 查询成功
+        G-->>P: 记录列表或空数组
+        P->>S: 更新记录与空态
+    else 查询失败
+        G-->>P: HTTP错误或网络失败
+        P->>S: 标记查询失败
+    end
+    Note over P,S: 不能从列表是否为空推断任务进度
+
+    U->>P: 点击提取
+    P->>S: 设置loading并禁用重复提交
+    P->>X: POST，无请求体
+    alt 正常候选响应
+        X-->>P: code为200，候选列表
+        P->>G: 重新查询持久化记录
+        alt 查询成功
+            G-->>P: 已确认有效记录或空数组
+            P->>S: 更新列表，解除请求锁
+        else 查询失败
+            G-->>P: 查询错误
+            P->>S: 解除锁，保留原展示并标记刷新失败
+            P-->>U: 提取请求已完成，结果刷新失败
+        end
+    else error结果或HTTP失败
+        X-->>P: 错误信息
+        P->>S: 设置error，解除锁
+        P-->>U: 展示错误
+    else 超时或断线
+        Note over P,X: 服务端执行结果未知
+        P->>S: 设置unknown，不自动重发
+        P-->>U: 提示重新查询
+    end
+
+    U->>P: 编辑并保存
+    P->>S: 保存中，保留输入
+    P->>E: 提交id及其他四个必需字段
+    alt 保存成功
+        E-->>P: code为200，success为true
+        P->>G: 重新查询
+        alt 查询成功
+            G-->>P: 当前记录列表
+            P->>S: 更新列表，退出编辑态
+        else 查询失败
+            G-->>P: 查询错误
+            P->>S: 标记保存已完成但刷新失败
+        end
+    else 保存失败或响应未知
+        E-->>P: HTTP错误或网络失败
+        P->>S: 解除保存锁，保留编辑内容
+        P-->>U: 展示失败或结果未知，不自动重发
+    end
